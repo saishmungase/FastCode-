@@ -2,9 +2,9 @@
 CodeRush💡  —  Make every second of coding count.
 
 ## 📚 Table of Contents
-- [About](#about)
-- [Tech Stack](#tech-stack)
-- [Features](#features)
+- [About](#-about-coderush)
+- [Tech Stack](#-tech-stack)
+- [Features](#-features)
 - [Screenshots](#-screenshots)
 - [Getting Started](#getting-started)
 - [Folder Structure](#folder-structure)

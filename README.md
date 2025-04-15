@@ -5,7 +5,7 @@ CodeRush💡  —  Make every second of coding count.
 - [About](#about)
 - [Tech Stack](#tech-stack)
 - [Features](#features)
-- [Screenshots](#screenshots)
+- [Screenshots](#-screenshots)
 - [Getting Started](#getting-started)
 - [Folder Structure](#folder-structure)
 - [API Documentation](#api-documentation)

@@ -21,7 +21,7 @@ const AuthForm = () => {
 
   const navigate = useNavigate();
   
-  const { mutate: signUpMutate, isLoading: isSignupLoading, error: signupError } = useMutation({
+  const { mutate: signUpMutate, isPending: isSignupLoading, error: signupError } = useMutation({
     mutationFn: signUp,
     onSuccess: (data) => {
       localStorage.setItem("user-token", data.token);
@@ -29,7 +29,7 @@ const AuthForm = () => {
     },
   });
 
-  const { mutate: loginMutate, isLoading: isLoginLoading, error: loginError } = useMutation({
+  const { mutate: loginMutate, isPending: isLoginLoading, error: loginError } = useMutation({
     mutationFn: signIn,
     onSuccess: (data) => {
       localStorage.setItem("user-token", data.token);

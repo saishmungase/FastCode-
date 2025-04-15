@@ -485,6 +485,11 @@ type Code = {
   code: string
 }
 
+type TestResult = {
+  status: string
+  output: string
+}
+
 type CodeEditorProps = {
   questionName: string
   level: string
@@ -751,9 +756,13 @@ public class Main {
   },
 ]
 
+type IdParams = {
+  id: string
+}
+
 export default function CodeEditor() {
-  const { id } = useParams()
-  const idx = Number.parseInt(id)
+  const { id } = useParams<IdParams>()
+  const idx = id ? Number.parseInt(id) : 1
   const questionIndex = idx - 1
   const question = questions[questionIndex] || questions[0]
 
@@ -765,7 +774,7 @@ export default function CodeEditor() {
   const [submitLoad, setSubmitLoad] = useState(false)
   const highlightedLinesRef = useRef<HTMLDivElement>(null)
   const [allPassed, setAllPassed] = useState(false)
-  const [allPassedData, setAllPassedData] = useState<any[]>([])
+  const [allPassedData, setAllPassedData] = useState<TestResult[]>([])
   const [showPopup, setShowPopup] = useState(false)
   const [testFailed, setTestFailed] = useState(false)
 
@@ -774,6 +783,7 @@ export default function CodeEditor() {
       highlightedLinesRef.current.scrollTop = textareaRef.current.scrollTop
       highlightedLinesRef.current.scrollLeft = textareaRef.current.scrollLeft
     }
+    console.log(testFailed)
   }, [code])
 
   const runCode = async () => {
@@ -789,12 +799,12 @@ export default function CodeEditor() {
       console.log("Question The Index => " + idx)
       console.log("The Data =>", data)
 
-      const newResults = data.map((testCase) => {
+      const newResults = data.map((testCase: TestResult) => {
         return testCase.status == "Passed" ? true : false
       })
 
       // Check if all test cases passed
-      const allTestsPassed = newResults.every((result) => result === true)
+      const allTestsPassed = newResults.every((result : boolean) => result === true)
 
       if (allTestsPassed) {
         setAllPassed(true)

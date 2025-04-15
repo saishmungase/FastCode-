@@ -16,7 +16,7 @@ const Solved = () => {
         }
 
         const response = await axios.get(
-          "http://localhost:3000/api/user/solvedProblems",
+          "https://coderush-0p5u.onrender.com/api/user/solvedProblems",
           {
             headers: {
               Authorization: `Bearer ${token}`,

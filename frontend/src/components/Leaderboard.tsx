@@ -27,7 +27,7 @@ export default function Leaderboard() {
           return [];
         }
         
-        const response = await axios.get("http://localhost:3000/api/leaderboard", {
+        const response = await axios.get("https://coderush-0p5u.onrender.com/api/leaderboard", {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -4,12 +4,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const signUp = async (userData: { name: string; email: string; password: string }) => {
-  const response = await axios.post('http://localhost:3000/api/user/signup', userData);
+  const response = await axios.post('https://coderush-0p5u.onrender.com/api/user/signup', userData);
   return response.data;
 };
 
 const signIn = async (credentials: { email: string; password: string }) => {
-  const response = await axios.post('http://localhost:3000/api/user/signin', credentials);
+  const response = await axios.post('https://coderush-0p5u.onrender.com/api/user/signin', credentials);
   return response.data;
 };
 

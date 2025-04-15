@@ -39,7 +39,7 @@ const codeRequest = async ({questionId, codie, testCases, addOnCode}: codeRunnin
     
     const token = localStorage.getItem("user-token")
     const response = await axios.post(
-        'http://localhost:3000/api/user/submit',
+        'https://coderush-0p5u.onrender.com/api/user/submit',
         {
             questionId,
             code

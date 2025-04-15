@@ -13,7 +13,7 @@ type signUpTypes = {
 };
 
 const signUp = async ({ name, email, password }: signUpTypes) => {
-  const response = await axios.post('http://localhost:3000/api/user/signup', {
+  const response = await axios.post('https://coderush-0p5u.onrender.com/api/user/signup', {
     name,
     email,
     password,

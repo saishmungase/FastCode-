@@ -208,7 +208,7 @@ Requires `Authorization: Bearer <token>` in headers or token in body.
 }
 ```
 
-### ⚠️ Common Errors
+#### ⚠️ Common Errors
 - **401 Unauthorized**: Missing/Invalid token
 - **404 Not Found**: User not found
 - **500 Internal Server Error**: Backend failure

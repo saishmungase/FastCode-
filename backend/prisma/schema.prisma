@@ -17,7 +17,7 @@ model User {
   name      String
   email     String  @unique
   password  String
-  points    Int     @default(0) @map("points") 
+  points    Float     @default(0) @map("points") 
   solvedProblems SolvedProblem[]
 }
 
@@ -27,5 +27,6 @@ model SolvedProblem {
   userId           String
   frontend_id      Int    
   total_time_taken Float 
+  point Float
 }
 

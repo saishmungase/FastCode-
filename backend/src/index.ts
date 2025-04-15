@@ -1,4 +1,4 @@
-import  express, { NextFunction, Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import z from 'zod'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import 'dotenv/config';
@@ -7,46 +7,78 @@ import checkUser from "./db/userExist";
 import isPasswordCorrect from "./db/checkPass";
 import fetchLeaderBoard from "./db/getLeaderBoard";
 import runCode from "./request/judge";
+import cors from 'cors'
+import scoreUser from "./db/scoreUser";
+import { error } from "console";
+import findSolvedQuestions from "./db/solvedProblems";
 
 const app = express();
 
+
 const signUpSchema = z.object({
-    name : z.string(),
-    email : z.string(),
-    password : z.string()
+    name: z.string(),
+    email: z.string(),
+    password: z.string()
 });
 
 const signInSchema = z.object({
-    email : z.string(),
-    password : z.string()
+    email: z.string(),
+    password: z.string()
 });
 
-
-// Cache Stuff
-
+// Adding Cache (Jarurat nhi hai vese but bas server ka load kam karne ke liye)
 let leaderboardCache = {
-    setTime : 0,
-    data : [{
-        id : '1',
-        name : "Saish",
-        points : 999
+    setTime: 0,
+    data: [{
+        id: '1',
+        name: "Saish",
+        points: 999
     }]
 };
 
-const CACHE_LIMIT = 30 * 1000; 
+const CACHE_LIMIT = 10 * 1000; 
 
-// End Of Cache Stuff
-
+app.use(cors());
 app.use(express.json());
 
+const secret: string = "Saish992005";
 
-/* 
-- To Fetch The Leader Board
-- Submitting User Code & Test Cases -> If all pass Give User Point on Time Taken -> Create Funtion For Points
-*/
-
-
-const secret : string = "Saish992005";
+function userCheck(req: Request, res: Response, next: NextFunction) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1] || req.body.token;
+    if (!token) {
+        res.status(401).send({
+            message: "Authentication required!"
+        });
+        return; 
+    }
+    
+    try {
+        const parsedValue = jwt.verify(token, secret) as JwtPayload;
+        
+        checkUser(parsedValue.email)
+            .then(isUserExist => {
+                if (!isUserExist) {
+                    res.status(401).send({
+                        message: "User does not exist!"
+                    });
+                    return; 
+                }
+                req.body.userEmail = parsedValue.email;
+                next();
+            })
+            .catch(err => {
+                res.status(500).send({
+                    message: "Server error during authentication"
+                });
+            });
+    } catch (error) {
+        res.status(401).send({
+            message: "Invalid authentication token!"
+        });
+        return; 
+    }
+}
 
 app.post('/api/user/signup', async(req: Request, res: Response): Promise<void> => {
     const body = req.body;
@@ -61,8 +93,8 @@ app.post('/api/user/signup', async(req: Request, res: Response): Promise<void> =
 
     if(!dbResponse){
         res.status(400).send({
-            message : "User Already Exist !!!",
-        })
+            message: "User Already Exist !!!",
+        });
         return;
     }
 
@@ -72,13 +104,13 @@ app.post('/api/user/signup', async(req: Request, res: Response): Promise<void> =
     );
 
     res.status(200).send({
-        message : "Success",
-        token : token
+        message: "Success",
+        token: token
     });
 });
 
 
-app.post('/api/user/signin', async (req, res) => {
+app.post('/api/user/signin', async (req: Request, res: Response) => {
     try {
         const body = req.body;
         const data = signInSchema.safeParse(body);
@@ -115,13 +147,46 @@ app.post('/api/user/signin', async (req, res) => {
     }
 });
 
-app.use(userCheck)
-
-app.post("/api/user/submit", async (req: Request, res: Response): Promise<void> => {
+app.get("/api/user/solvedProblems", userCheck, async (req, res) =>{
+    const mail = req.body.userEmail;
     try {
-        const response = await runCode(req.body.data)
-        res.status(200).json({ response});
+        const solvedQuestions = await findSolvedQuestions(mail);
+        res.status(200).json({
+            list : solvedQuestions
+        })
         return
+    } catch (error) {
+        res.status(500).json({
+            message : "Internal Server Error !"
+        })
+        return;
+    }
+
+})
+
+app.post("/api/user/submit", userCheck, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const response = await runCode(req.body.code);
+        type timeArr = string[]
+        if(response.error){
+            res.status(500).json({error : "Internal Server Error"});
+            return 
+        }
+        const timeTakenArr : timeArr= [];
+        const failedCase = response.results?.find((val) => val.status !== "Passed");
+        if (failedCase) {
+            res.status(200).json({ data: response.results });
+            return 
+        }
+
+        response.results?.map((val) => {
+            timeTakenArr.push(val.timeTaken);
+        })
+        const email = req.body.userEmail;
+        const questionId = req.body.questionId;
+        await scoreUser({questionId, email, timeTaken : timeTakenArr});
+        res.status(200).json({ response });
+        return;
     } catch (error: any) {
         console.error("Error in /api/user/submit:", error.message);
         res.status(500).json({ error: "Internal Server Error" });
@@ -129,48 +194,26 @@ app.post("/api/user/submit", async (req: Request, res: Response): Promise<void> 
     }
 });
 
-app.get('/api/leaderboard', async (req, res) => {
+app.get('/api/leaderboard', userCheck, async (req: Request, res: Response) => {
     const currentTime = Date.now();
-    if (leaderboardCache.setTime && (currentTime - leaderboardCache.setTime) < CACHE_LIMIT)
-    {
+    if (leaderboardCache.setTime && (currentTime - leaderboardCache.setTime) < CACHE_LIMIT) {
         res.status(200).send({
-            leaderboard : leaderboardCache.data
-        })
+            leaderboard: leaderboardCache.data
+        });
         return;
     }
-    const fetchLeaderboard = await fetchLeaderBoard();
+    
+    const leaderboardData = await fetchLeaderBoard();
     leaderboardCache = {
-        setTime : currentTime,
-        data : fetchLeaderboard
-    }
+        setTime: currentTime,
+        data: leaderboardData
+    };
+    
     res.status(200).send({
-        leaderboard : fetchLeaderboard
-    })
-    return;
-})
+        leaderboard: leaderboardData
+    });
+});
 
-app.listen(3000, () =>{
-    console.log("listenning at port 3000 !");
-})
-
-
-
-function userCheck(req : Request, res : Response, next : NextFunction){
-    const token = req.body.token;
-    try {
-        const parsedValue = jwt.verify(token, secret) as JwtPayload;
-        const isUserExist = checkUser(parsedValue.email);
-        if(!isUserExist){
-            res.status(401).send({
-                message : "User Does Not Exist !"
-            })
-            return;
-        }
-        next();
-    } catch (error) {
-        res.status(401).send({
-            message : "User Does Not Exist !"
-        })
-        return;
-    }
-}
+app.listen(3000, () => {
+    console.log("Listening at port 3000!");
+});

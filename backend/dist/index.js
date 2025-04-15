@@ -21,6 +21,9 @@ const userExist_1 = __importDefault(require("./db/userExist"));
 const checkPass_1 = __importDefault(require("./db/checkPass"));
 const getLeaderBoard_1 = __importDefault(require("./db/getLeaderBoard"));
 const judge_1 = __importDefault(require("./request/judge"));
+const cors_1 = __importDefault(require("cors"));
+const scoreUser_1 = __importDefault(require("./db/scoreUser"));
+const solvedProblems_1 = __importDefault(require("./db/solvedProblems"));
 const app = (0, express_1.default)();
 const signUpSchema = zod_1.default.object({
     name: zod_1.default.string(),
@@ -31,7 +34,7 @@ const signInSchema = zod_1.default.object({
     email: zod_1.default.string(),
     password: zod_1.default.string()
 });
-// Cache Stuff
+// Adding Cache (Jarurat nhi hai vese but bas server ka load kam karne ke liye)
 let leaderboardCache = {
     setTime: 0,
     data: [{
@@ -40,14 +43,45 @@ let leaderboardCache = {
             points: 999
         }]
 };
-const CACHE_LIMIT = 30 * 1000;
-// End Of Cache Stuff
+const CACHE_LIMIT = 10 * 1000;
+app.use((0, cors_1.default)());
 app.use(express_1.default.json());
-/*
-- To Fetch The Leader Board
-- Submitting User Code & Test Cases -> If all pass Give User Point on Time Taken -> Create Funtion For Points
-*/
 const secret = "Saish992005";
+function userCheck(req, res, next) {
+    const authHeader = req.headers.authorization;
+    const token = (authHeader === null || authHeader === void 0 ? void 0 : authHeader.split(' ')[1]) || req.body.token;
+    if (!token) {
+        res.status(401).send({
+            message: "Authentication required!"
+        });
+        return;
+    }
+    try {
+        const parsedValue = jsonwebtoken_1.default.verify(token, secret);
+        (0, userExist_1.default)(parsedValue.email)
+            .then(isUserExist => {
+            if (!isUserExist) {
+                res.status(401).send({
+                    message: "User does not exist!"
+                });
+                return;
+            }
+            req.body.userEmail = parsedValue.email;
+            next();
+        })
+            .catch(err => {
+            res.status(500).send({
+                message: "Server error during authentication"
+            });
+        });
+    }
+    catch (error) {
+        res.status(401).send({
+            message: "Invalid authentication token!"
+        });
+        return;
+    }
+}
 app.post('/api/user/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const body = req.body;
     const data = signUpSchema.safeParse(body);
@@ -98,10 +132,42 @@ app.post('/api/user/signin', (req, res) => __awaiter(void 0, void 0, void 0, fun
         res.status(500).send({ message: "Internal Server Error" });
     }
 }));
-app.use(userCheck);
-app.post("/api/user/submit", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get("/api/user/solvedProblems", userCheck, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const mail = req.body.userEmail;
     try {
-        const response = yield (0, judge_1.default)(req.body.data);
+        const solvedQuestions = yield (0, solvedProblems_1.default)(mail);
+        res.status(200).json({
+            list: solvedQuestions
+        });
+        return;
+    }
+    catch (error) {
+        res.status(500).json({
+            message: "Internal Server Error !"
+        });
+        return;
+    }
+}));
+app.post("/api/user/submit", userCheck, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const response = yield (0, judge_1.default)(req.body.code);
+        if (response.error) {
+            res.status(500).json({ error: "Internal Server Error" });
+            return;
+        }
+        const timeTakenArr = [];
+        const failedCase = (_a = response.results) === null || _a === void 0 ? void 0 : _a.find((val) => val.status !== "Passed");
+        if (failedCase) {
+            res.status(200).json({ data: response.results });
+            return;
+        }
+        (_b = response.results) === null || _b === void 0 ? void 0 : _b.map((val) => {
+            timeTakenArr.push(val.timeTaken);
+        });
+        const email = req.body.userEmail;
+        const questionId = req.body.questionId;
+        yield (0, scoreUser_1.default)({ questionId, email, timeTaken: timeTakenArr });
         res.status(200).json({ response });
         return;
     }
@@ -111,7 +177,7 @@ app.post("/api/user/submit", (req, res) => __awaiter(void 0, void 0, void 0, fun
         return;
     }
 }));
-app.get('/api/leaderboard', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get('/api/leaderboard', userCheck, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const currentTime = Date.now();
     if (leaderboardCache.setTime && (currentTime - leaderboardCache.setTime) < CACHE_LIMIT) {
         res.status(200).send({
@@ -119,36 +185,15 @@ app.get('/api/leaderboard', (req, res) => __awaiter(void 0, void 0, void 0, func
         });
         return;
     }
-    const fetchLeaderboard = yield (0, getLeaderBoard_1.default)();
+    const leaderboardData = yield (0, getLeaderBoard_1.default)();
     leaderboardCache = {
         setTime: currentTime,
-        data: fetchLeaderboard
+        data: leaderboardData
     };
     res.status(200).send({
-        leaderboard: fetchLeaderboard
+        leaderboard: leaderboardData
     });
-    return;
 }));
 app.listen(3000, () => {
-    console.log("listenning at port 3000 !");
+    console.log("Listening at port 3000!");
 });
-function userCheck(req, res, next) {
-    const token = req.body.token;
-    try {
-        const parsedValue = jsonwebtoken_1.default.verify(token, secret);
-        const isUserExist = (0, userExist_1.default)(parsedValue.email);
-        if (!isUserExist) {
-            res.status(401).send({
-                message: "User Does Not Exist !"
-            });
-            return;
-        }
-        next();
-    }
-    catch (error) {
-        res.status(401).send({
-            message: "User Does Not Exist !"
-        });
-        return;
-    }
-}

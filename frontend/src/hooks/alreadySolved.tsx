@@ -30,7 +30,7 @@ const Solved = () => {
         return response.data.list.map(
           (item: { frontend_id: number }) => item.frontend_id
         );
-      } catch (err: any) {
+      } catch (err: any | unknown) {
         if (err.response && err.response.status === 401) {
           localStorage.removeItem("user-token");
           navigate("/authenticate");

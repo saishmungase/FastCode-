@@ -18,7 +18,7 @@ type codeRunningTypes = {
 
 const codeRequest = async ({questionId, codie, testCases, addOnCode}: codeRunningTypes) => {
     const code = addOnCode.map((val, index) => {
-        let expectedOutput = testCases[index].expected.replace(/^['"]|['"]$/g, '');
+        let expectedOutput : number | string = testCases[index].expected.replace(/^['"]|['"]$/g, '');
         
         if (!isNaN(Number(expectedOutput))) {
             expectedOutput = Number(expectedOutput);

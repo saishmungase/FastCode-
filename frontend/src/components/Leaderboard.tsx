@@ -17,7 +17,7 @@ export default function Leaderboard() {
     }
   }, [navigate]);
 
-  const { data, status, isFetching, error } = useQuery({
+  const { data, isFetching, error } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: async () => {
       try {

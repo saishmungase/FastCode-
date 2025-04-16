@@ -5,11 +5,12 @@ import Leaderboard from "./components/Leaderboard";
 import Landing from "./components/Landing";
 import CodeEditor from "./components/code-editor-standalone";
 import AuthForm from "./components/Auth-Form";
-
+import { Analytics } from "@vercel/analytics/react"
 
 
 export default function App() {
   return (
+    <>
     <Router>
       <div>
         <Navbar />
@@ -22,5 +23,7 @@ export default function App() {
         </Routes>
       </div>
     </Router>
+    <Analytics />
+    </>
   );
 }

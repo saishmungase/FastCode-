@@ -85,7 +85,7 @@ app.post('/api/user/signup', async(req: Request, res: Response): Promise<void> =
     const data = signUpSchema.safeParse(body);
     
     if (!data.success) {
-        res.status(400).send({ message: "Failed" });
+        res.status(400).send({ message: "Failed to Create User" });
         return; 
     }
 
